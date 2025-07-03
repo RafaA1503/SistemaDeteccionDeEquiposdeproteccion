@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { PPEDetectionResult } from '../services/deepseekService';
 import { EnhancedPPEResult } from '../services/neuralAnalysisService';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { CheckCircle, XCircle, AlertCircle, Clock, Camera, Brain, Network, Cpu, Target } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Clock, Camera, Brain, Network, Cpu, Target, AlertTriangle } from 'lucide-react';
 
 interface PPEDetectionResultProps {
   result: EnhancedPPEResult | PPEDetectionResult | null;
