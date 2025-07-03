@@ -1,4 +1,6 @@
 
+import { TrainingImageStorageService } from './trainingImageStorageService';
+
 export interface TrainingSession {
   id: string;
   timestamp: string;
@@ -9,6 +11,8 @@ export interface TrainingSession {
   validationLoss: number;
   trainingTime: number;
   status: 'completed' | 'failed' | 'in_progress';
+  folderId?: string;
+  storedImages?: number;
 }
 
 export interface NeuralModel {
@@ -96,10 +100,11 @@ export class NeuralTrainingService {
     return defaultModel;
   }
 
-  // Obtener estadísticas de entrenamiento
+  // Obtener estadísticas de entrenamiento mejoradas
   static getTrainingStats() {
     const sessions = this.getTrainingSessions();
     const model = this.getCurrentModel();
+    const trainingImageStats = TrainingImageStorageService.getTrainingStats();
     
     const completedSessions = sessions.filter(s => s.status === 'completed');
     const totalTrainingTime = completedSessions.reduce((sum, s) => sum + s.trainingTime, 0);
@@ -114,11 +119,15 @@ export class NeuralTrainingService {
       averageAccuracy: Math.round(averageAccuracy * 100) / 100,
       currentModel: model,
       lastTraining: sessions[0]?.timestamp || null,
-      totalImagesProcessed: model.trainedImages,
+      totalImagesProcessed: model.trainedImages + trainingImageStats.totalImages,
+      storedTrainingImages: trainingImageStats.totalImages,
+      trainingFolders: trainingImageStats.totalFolders,
+      highQualityImages: trainingImageStats.highQualityImages,
       modelEvolution: sessions.slice(0, 5).map(s => ({
         version: s.modelVersion,
         accuracy: s.accuracy,
-        date: s.timestamp
+        date: s.timestamp,
+        storedImages: s.storedImages || 0
       }))
     };
   }
@@ -130,18 +139,21 @@ export class NeuralTrainingService {
     console.log('🗑️ Datos de entrenamiento limpiados');
   }
 
-  // Exportar datos de entrenamiento
   static exportTrainingData() {
     const sessions = this.getTrainingSessions();
     const model = this.getCurrentModel();
     const stats = this.getTrainingStats();
+    const trainingImages = TrainingImageStorageService.getAllTrainingImages();
+    const folders = TrainingImageStorageService.getAllFolders();
 
     const exportData = {
       sessions,
       model,
       stats,
+      trainingImages: trainingImages.length,
+      folders,
       exportDate: new Date().toISOString(),
-      version: '1.0'
+      version: '2.0'
     };
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], {
@@ -151,18 +163,22 @@ export class NeuralTrainingService {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `neural_training_data_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `neural_training_complete_data_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
 
-    console.log('📁 Datos de entrenamiento exportados');
+    console.log('📁 Datos completos de entrenamiento exportados');
   }
 
-  // Simular mejora de precisión basada en entrenamiento
-  static calculateImprovedAccuracy(baseAccuracy: number, trainingImages: number): number {
+  // Simular mejora de precisión basada en entrenamiento + imágenes almacenadas
+  static calculateImprovedAccuracy(baseAccuracy: number, additionalImages: number): number {
     const model = this.getCurrentModel();
-    const improvementFactor = Math.min(0.15, (model.trainedImages + trainingImages) / 1000 * 0.1);
-    const improvedAccuracy = Math.min(99, baseAccuracy + (improvementFactor * 100));
+    const storedImages = TrainingImageStorageService.getAllTrainingImages();
+    const totalTrainingData = model.trainedImages + storedImages.length + additionalImages;
+    
+    const improvementFactor = Math.min(0.2, totalTrainingData / 1000 * 0.12);
+    const qualityBonus = storedImages.length > 0 ? 0.03 : 0;
+    const improvedAccuracy = Math.min(99, baseAccuracy + (improvementFactor + qualityBonus) * 100);
     
     return Math.round(improvedAccuracy * 100) / 100;
   }
@@ -170,19 +186,23 @@ export class NeuralTrainingService {
   // Verificar si el modelo necesita reentrenamiento
   static needsRetraining(): boolean {
     const model = this.getCurrentModel();
+    const storedImages = TrainingImageStorageService.getAllTrainingImages();
     const lastTraining = new Date(model.lastTraining);
     const daysSinceTraining = (Date.now() - lastTraining.getTime()) / (1000 * 60 * 60 * 24);
     
-    return daysSinceTraining > 7 || model.trainedImages < 50;
+    return daysSinceTraining > 7 || (model.trainedImages + storedImages.length) < 50;
   }
 
-  // Obtener recomendaciones de entrenamiento
+  // Obtener recomendaciones de entrenamiento mejoradas
   static getTrainingRecommendations(): string[] {
     const model = this.getCurrentModel();
+    const storedImages = TrainingImageStorageService.getAllTrainingImages();
+    const trainingStats = TrainingImageStorageService.getTrainingStats();
+    const totalImages = model.trainedImages + storedImages.length;
     const recommendations: string[] = [];
 
-    if (model.trainedImages < 50) {
-      recommendations.push('🎯 Añade más imágenes de entrenamiento para mejorar la precisión');
+    if (totalImages < 50) {
+      recommendations.push(`🎯 Añade más imágenes de entrenamiento (${totalImages}/50 mínimo recomendado)`);
     }
 
     if (model.accuracy < 90) {
@@ -193,8 +213,16 @@ export class NeuralTrainingService {
       recommendations.push('🔄 Considera reentrenar el modelo con datos más recientes');
     }
 
-    if (model.trainedImages > 100 && model.accuracy > 95) {
-      recommendations.push('✅ El modelo está bien entrenado y listo para uso en producción');
+    if (trainingStats.highQualityImages < trainingStats.totalImages * 0.7) {
+      recommendations.push('📸 Mejora la calidad de las imágenes de entrenamiento (usa imágenes más grandes)');
+    }
+
+    if (storedImages.length > 0) {
+      recommendations.push(`💾 Tienes ${storedImages.length} imágenes almacenadas mejorando las predicciones`);
+    }
+
+    if (totalImages > 100 && model.accuracy > 95) {
+      recommendations.push('✅ El modelo está bien entrenado y optimizado para uso en producción');
     }
 
     return recommendations.length > 0 ? recommendations : ['🎉 El modelo está funcionando correctamente'];
