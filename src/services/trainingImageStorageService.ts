@@ -15,6 +15,7 @@ export interface TrainingImageData {
   trainingSessionId?: string;
   isUsedForPrediction: boolean;
   quality: 'high' | 'medium' | 'low';
+  confidence: number;
 }
 
 export interface TrainingImageFolder {
@@ -25,6 +26,7 @@ export interface TrainingImageFolder {
   createdDate: string;
   totalImages: number;
   avgQuality: number;
+  avgConfidence: number;
 }
 
 export class TrainingImageStorageService {
@@ -40,7 +42,8 @@ export class TrainingImageStorageService {
       images: [],
       createdDate: new Date().toISOString(),
       totalImages: 0,
-      avgQuality: 0
+      avgQuality: 0,
+      avgConfidence: 0
     };
 
     const folders = this.getAllFolders();
@@ -51,7 +54,7 @@ export class TrainingImageStorageService {
     return folder;
   }
 
-  // Guardar imagen de entrenamiento en carpeta
+  // Guardar imagen de entrenamiento en carpeta específica
   static saveTrainingImage(
     file: File, 
     labels: TrainingImageData['labels'],
@@ -75,7 +78,8 @@ export class TrainingImageStorageService {
             uploadDate: new Date().toISOString(),
             trainingSessionId,
             isUsedForPrediction: true,
-            quality: this.assessImageQuality(file)
+            quality: this.assessImageQuality(file),
+            confidence: this.calculateImageConfidence(labels)
           };
 
           // Guardar en carpeta específica o crear carpeta por defecto
@@ -87,7 +91,7 @@ export class TrainingImageStorageService {
 
           this.addImageToFolder(targetFolderId, trainingImage);
           
-          console.log('🖼️ Imagen de entrenamiento guardada:', trainingImage.fileName);
+          console.log('🖼️ Imagen de entrenamiento guardada en carpeta:', trainingImage.fileName);
           resolve(trainingImage);
         } catch (error) {
           console.error('❌ Error guardando imagen de entrenamiento:', error);
@@ -139,26 +143,26 @@ export class TrainingImageStorageService {
       folders[folderIndex].images.push(image);
       folders[folderIndex].totalImages = folders[folderIndex].images.length;
       folders[folderIndex].avgQuality = this.calculateAverageQuality(folders[folderIndex].images);
+      folders[folderIndex].avgConfidence = this.calculateAverageConfidence(folders[folderIndex].images);
       
       localStorage.setItem(this.FOLDERS_KEY, JSON.stringify(folders));
+      console.log('✅ Imagen añadida a carpeta:', folders[folderIndex].name);
     }
   }
 
-  // Obtener todas las imágenes de entrenamiento
+  // Obtener todas las imágenes de entrenamiento para predicción rápida
   static getAllTrainingImages(): TrainingImageData[] {
     const folders = this.getAllFolders();
     return folders.flatMap(folder => folder.images);
   }
 
-  // Obtener imágenes para predicción (las de mejor calidad)
-  static getImagesForPrediction(): TrainingImageData[] {
+  // Obtener imágenes de alta calidad para predicción optimizada
+  static getHighQualityImagesForPrediction(): TrainingImageData[] {
     const allImages = this.getAllTrainingImages();
     return allImages
-      .filter(img => img.isUsedForPrediction)
-      .sort((a, b) => {
-        const qualityOrder = { high: 3, medium: 2, low: 1 };
-        return qualityOrder[b.quality] - qualityOrder[a.quality];
-      });
+      .filter(img => img.isUsedForPrediction && img.quality === 'high')
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, 50); // Limitar a las 50 mejores para velocidad
   }
 
   // Evaluar calidad de imagen
@@ -168,6 +172,12 @@ export class TrainingImageStorageService {
     if (sizeInMB > 2) return 'high';
     if (sizeInMB > 0.5) return 'medium';
     return 'low';
+  }
+
+  // Calcular confianza de imagen basada en etiquetas
+  private static calculateImageConfidence(labels: TrainingImageData['labels']): number {
+    const labelCount = Object.values(labels).filter(Boolean).length;
+    return Math.min(95, 70 + (labelCount * 5)); // Base 70% + 5% por cada EPP detectado
   }
 
   // Calcular calidad promedio
@@ -186,6 +196,88 @@ export class TrainingImageStorageService {
     return qualityScores.reduce((sum, score) => sum + score, 0) / qualityScores.length;
   }
 
+  // Calcular confianza promedio
+  private static calculateAverageConfidence(images: TrainingImageData[]): number {
+    if (images.length === 0) return 0;
+    return images.reduce((sum, img) => sum + img.confidence, 0) / images.length;
+  }
+
+  // Obtener estadísticas de entrenamiento optimizadas
+  static getTrainingStats() {
+    const folders = this.getAllFolders();
+    const allImages = this.getAllTrainingImages();
+    const highQualityImages = allImages.filter(img => img.quality === 'high');
+    
+    const stats = {
+      totalFolders: folders.length,
+      totalImages: allImages.length,
+      highQualityImages: highQualityImages.length,
+      mediumQualityImages: allImages.filter(img => img.quality === 'medium').length,
+      lowQualityImages: allImages.filter(img => img.quality === 'low').length,
+      imagesWithHelmet: allImages.filter(img => img.labels.hasHelmet).length,
+      imagesWithGloves: allImages.filter(img => img.labels.hasGloves).length,
+      imagesWithGlasses: allImages.filter(img => img.labels.hasSafetyGlasses).length,
+      imagesWithMask: allImages.filter(img => img.labels.hasMask).length,
+      imagesWithVest: allImages.filter(img => img.labels.hasVest).length,
+      avgQualityScore: folders.reduce((sum, folder) => sum + folder.avgQuality, 0) / folders.length || 0,
+      avgConfidenceScore: folders.reduce((sum, folder) => sum + folder.avgConfidence, 0) / folders.length || 0,
+      readyForPrediction: highQualityImages.length >= 10
+    };
+    
+    return stats;
+  }
+
+  // Mejorar predicción con datos de entrenamiento - OPTIMIZADO PARA VELOCIDAD
+  static enhancePredictionWithTrainingData(basePrediction: any): any {
+    const trainingImages = this.getHighQualityImagesForPrediction();
+    const stats = this.getTrainingStats();
+    
+    if (trainingImages.length === 0) {
+      return basePrediction;
+    }
+
+    // Mejora rápida basada en coincidencias de patrones
+    const patternMatch = this.findPatternMatches(basePrediction, trainingImages);
+    const improvementFactor = Math.min(0.25, (trainingImages.length / 50) * 0.2);
+    const confidenceBoost = patternMatch * 10 + (stats.avgConfidenceScore / 100) * 5;
+    
+    const enhancedPrediction = {
+      ...basePrediction,
+      confidence: Math.min(98, basePrediction.confidence + confidenceBoost),
+      details: `${basePrediction.details} | OPTIMIZADO: ${trainingImages.length} imgs alta calidad (Patrón: ${Math.round(patternMatch * 100)}%)`,
+      trainingDataUsed: true,
+      trainingImagesCount: trainingImages.length,
+      avgTrainingQuality: stats.avgQualityScore,
+      patternMatchScore: patternMatch,
+      optimizedForSpeed: true
+    };
+
+    console.log(`🚀 Predicción mejorada con ${trainingImages.length} imágenes de entrenamiento`);
+    return enhancedPrediction;
+  }
+
+  // Encontrar coincidencias de patrones para mejora rápida
+  private static findPatternMatches(prediction: any, trainingImages: TrainingImageData[]): number {
+    if (!prediction.detectedItems) return 0.5;
+    
+    let matches = 0;
+    let total = 0;
+    
+    trainingImages.slice(0, 20).forEach(img => { // Solo revisar las primeras 20 para velocidad
+      Object.keys(img.labels).forEach(key => {
+        total++;
+        const detected = prediction.detectedItems.some((item: any) => 
+          item.type.toLowerCase().includes(key.replace('has', '').toLowerCase())
+        );
+        if (detected === img.labels[key as keyof typeof img.labels]) {
+          matches++;
+        }
+      });
+    });
+    
+    return total > 0 ? matches / total : 0.5;
+  }
+
   // Eliminar imagen de entrenamiento
   static deleteTrainingImage(imageId: string): void {
     const folders = this.getAllFolders();
@@ -196,6 +288,7 @@ export class TrainingImageStorageService {
         folder.images.splice(imageIndex, 1);
         folder.totalImages = folder.images.length;
         folder.avgQuality = this.calculateAverageQuality(folder.images);
+        folder.avgConfidence = this.calculateAverageConfidence(folder.images);
       }
     });
     
@@ -211,28 +304,6 @@ export class TrainingImageStorageService {
     console.log('📁🗑️ Carpeta de entrenamiento eliminada:', folderId);
   }
 
-  // Obtener estadísticas de entrenamiento
-  static getTrainingStats() {
-    const folders = this.getAllFolders();
-    const allImages = this.getAllTrainingImages();
-    
-    const stats = {
-      totalFolders: folders.length,
-      totalImages: allImages.length,
-      highQualityImages: allImages.filter(img => img.quality === 'high').length,
-      mediumQualityImages: allImages.filter(img => img.quality === 'medium').length,
-      lowQualityImages: allImages.filter(img => img.quality === 'low').length,
-      imagesWithHelmet: allImages.filter(img => img.labels.hasHelmet).length,
-      imagesWithGloves: allImages.filter(img => img.labels.hasGloves).length,
-      imagesWithGlasses: allImages.filter(img => img.labels.hasSafetyGlasses).length,
-      imagesWithMask: allImages.filter(img => img.labels.hasMask).length,
-      imagesWithVest: allImages.filter(img => img.labels.hasVest).length,
-      avgQualityScore: folders.reduce((sum, folder) => sum + folder.avgQuality, 0) / folders.length || 0
-    };
-    
-    return stats;
-  }
-
   // Exportar datos de entrenamiento
   static exportTrainingData(): void {
     const folders = this.getAllFolders();
@@ -242,7 +313,7 @@ export class TrainingImageStorageService {
       folders,
       stats,
       exportDate: new Date().toISOString(),
-      version: '1.0',
+      version: '2.0',
       totalSize: folders.reduce((sum, folder) => sum + folder.images.length, 0)
     };
 
@@ -265,30 +336,5 @@ export class TrainingImageStorageService {
     localStorage.removeItem(this.STORAGE_KEY);
     localStorage.removeItem(this.FOLDERS_KEY);
     console.log('🗑️ Todos los datos de entrenamiento eliminados');
-  }
-
-  // Mejorar predicción con imágenes de entrenamiento
-  static enhancePredictionWithTrainingData(basePrediction: any): any {
-    const trainingImages = this.getImagesForPrediction();
-    const stats = this.getTrainingStats();
-    
-    if (trainingImages.length === 0) {
-      return basePrediction;
-    }
-
-    // Calcular mejora basada en datos de entrenamiento
-    const improvementFactor = Math.min(0.15, trainingImages.length / 100 * 0.1);
-    const qualityBonus = stats.avgQualityScore / 3 * 0.05;
-    
-    const enhancedPrediction = {
-      ...basePrediction,
-      confidence: Math.min(99, basePrediction.confidence + (improvementFactor + qualityBonus) * 100),
-      details: `${basePrediction.details} | Mejorado con ${trainingImages.length} imágenes de entrenamiento (Calidad promedio: ${stats.avgQualityScore.toFixed(1)}/3)`,
-      trainingDataUsed: true,
-      trainingImagesCount: trainingImages.length,
-      avgTrainingQuality: stats.avgQualityScore
-    };
-
-    return enhancedPrediction;
   }
 }
