@@ -1,4 +1,3 @@
-
 import { DeepSeekService, PPEDetectionResult } from './deepseekService';
 import { NeuralTrainingService } from './neuralTrainingService';
 import { TrainingImageStorageService } from './trainingImageStorageService';
@@ -33,6 +32,15 @@ export interface EnhancedPPEResult extends PPEDetectionResult {
     trainedImages: number;
     patternMatchScore?: number;
   };
+}
+
+// Interfaz para resultado con datos de entrenamiento
+interface EnhancedTrainingResult extends PPEDetectionResult {
+  patternMatchScore?: number;
+  trainingDataUsed?: boolean;
+  trainingImagesCount?: number;
+  avgTrainingQuality?: number;
+  optimizedForSpeed?: boolean;
 }
 
 export class NeuralAnalysisService {
@@ -108,20 +116,20 @@ export class NeuralAnalysisService {
   }
 
   // Aplicar mejoras del entrenamiento - OPTIMIZADO
-  private static applyTrainingEnhancements(result: PPEDetectionResult, trainingStats: any): PPEDetectionResult {
+  private static applyTrainingEnhancements(result: PPEDetectionResult, trainingStats: any): EnhancedTrainingResult {
     if (!this.config.useTrainingData || trainingStats.totalImages === 0) {
       return result;
     }
 
     // Usar el sistema optimizado de imágenes de entrenamiento
-    const enhancedResult = TrainingImageStorageService.enhancePredictionWithTrainingData(result);
+    const enhancedResult = TrainingImageStorageService.enhancePredictionWithTrainingData(result) as EnhancedTrainingResult;
     
     console.log(`🚀 Mejora aplicada con ${trainingStats.totalImages} imágenes de entrenamiento`);
     return enhancedResult;
   }
 
   // Ensemble de modelos neuronales (optimizado)
-  private static async runEnsembleModels(imageBase64: string, primaryResult: PPEDetectionResult) {
+  private static async runEnsembleModels(imageBase64: string, primaryResult: EnhancedTrainingResult) {
     const models = [
       { name: 'ResNet_Fast', accuracy: primaryResult.confidence - 1 + Math.random() * 2 },
       { name: 'VisionTransformer_Lite', accuracy: primaryResult.confidence + Math.random() * 1.5 }
@@ -142,7 +150,7 @@ export class NeuralAnalysisService {
   }
 
   // Calcular métricas de deep learning
-  private static calculateDeepLearningMetrics(result: PPEDetectionResult, ensembleResults: any[]) {
+  private static calculateDeepLearningMetrics(result: EnhancedTrainingResult, ensembleResults: any[]) {
     const baseAccuracy = result.confidence;
     
     return {
@@ -155,7 +163,7 @@ export class NeuralAnalysisService {
 
   // Crear resultado final optimizado
   private static createOptimizedEnhancedResult(
-    result: PPEDetectionResult,
+    result: EnhancedTrainingResult,
     ensembleResults: any[],
     crossValidationScore: number,
     deepLearningMetrics: any,
@@ -165,6 +173,11 @@ export class NeuralAnalysisService {
     const neuralScore = Math.min(97, result.confidence + 1);
     const modelAgreement = deepLearningMetrics.ensembleAgreement;
     const uncertaintyLevel = Math.max(3, 100 - neuralScore - 3);
+    
+    // Obtener patternMatchScore de forma segura
+    const patternMatchScore = result.patternMatchScore || 0.5;
+    const trainingBoost = patternMatchScore * 10;
+    const baseAccuracy = result.confidence - trainingBoost;
     
     return {
       ...result,
@@ -179,15 +192,15 @@ export class NeuralAnalysisService {
       crossValidationScore,
       deepLearningMetrics,
       trainingEnhancement: {
-        baseAccuracy: result.confidence - (result.patternMatchScore ? result.patternMatchScore * 10 : 3),
-        trainingBoost: result.patternMatchScore ? result.patternMatchScore * 10 : 3,
-        modelVersion: trainingStats.currentModel.version,
+        baseAccuracy: Math.max(70, baseAccuracy),
+        trainingBoost,
+        modelVersion: trainingStats.currentModel?.version || 'v1.0.0',
         trainedImages: trainingStats.totalImages,
-        patternMatchScore: result.patternMatchScore
+        patternMatchScore
       },
       details: `ANÁLISIS OPTIMIZADO: CNN con ${trainingStats.totalImages} imágenes de entrenamiento. 
                 ${trainingStats.readyForPrediction ? 'MODELO LISTO' : 'ENTRENANDO'}. 
-                Patrones reconocidos: ${result.patternMatchScore ? Math.round(result.patternMatchScore * 100) : 50}%. 
+                Patrones reconocidos: ${Math.round(patternMatchScore * 100)}%. 
                 ${result.details}`
     };
   }
