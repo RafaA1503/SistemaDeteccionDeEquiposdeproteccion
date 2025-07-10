@@ -226,7 +226,7 @@ const Index = () => {
                     <Users className="h-6 w-6 text-red-400" />
                     <div className="text-center">
                       <div className="font-bold text-red-300">Desarrollado por:</div>
-                      <div className="text-white font-semibold">Davis & Carlas</div>
+                      <div className="text-white font-semibold">Carla y David</div>
                     </div>
                   </div>
                 </div>
