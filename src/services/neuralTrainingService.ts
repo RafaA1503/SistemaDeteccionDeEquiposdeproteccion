@@ -1,4 +1,3 @@
-
 import { TrainingImageStorageService } from './trainingImageStorageService';
 
 export interface TrainingSession {
@@ -116,7 +115,7 @@ export class NeuralTrainingService {
       totalSessions: sessions.length,
       completedSessions: completedSessions.length,
       totalTrainingTime: Math.round(totalTrainingTime),
-      averageAccuracy: Math.round(averageAccuracy * 100) / 100,
+      averageAccuracy: Math.round(averageAccuracy), // Redondeado a entero
       currentModel: model,
       lastTraining: sessions[0]?.timestamp || null,
       totalImagesProcessed: model.trainedImages + trainingImageStats.totalImages,
@@ -125,7 +124,7 @@ export class NeuralTrainingService {
       highQualityImages: trainingImageStats.highQualityImages,
       modelEvolution: sessions.slice(0, 5).map(s => ({
         version: s.modelVersion,
-        accuracy: s.accuracy,
+        accuracy: Math.round(s.accuracy), // Redondeado a entero
         date: s.timestamp,
         storedImages: s.storedImages || 0
       }))
@@ -180,7 +179,7 @@ export class NeuralTrainingService {
     const qualityBonus = storedImages.length > 0 ? 0.03 : 0;
     const improvedAccuracy = Math.min(99, baseAccuracy + (improvementFactor + qualityBonus) * 100);
     
-    return Math.round(improvedAccuracy * 100) / 100;
+    return Math.round(improvedAccuracy); // Redondeado a entero
   }
 
   // Verificar si el modelo necesita reentrenamiento

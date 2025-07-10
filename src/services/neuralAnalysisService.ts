@@ -1,3 +1,4 @@
+
 import { DeepSeekService, PPEDetectionResult } from './deepseekService';
 import { NeuralTrainingService } from './neuralTrainingService';
 import { TrainingImageStorageService } from './trainingImageStorageService';
@@ -90,7 +91,7 @@ export class NeuralAnalysisService {
       );
       
       console.log('✅ Análisis neuronal completado con datos de entrenamiento');
-      console.log('📊 Precisión final optimizada:', finalResult.confidence + '%');
+      console.log('📊 Precisión final optimizada:', Math.round(finalResult.confidence) + '%');
       
       return finalResult;
 
@@ -110,7 +111,7 @@ export class NeuralAnalysisService {
     
     return {
       ...result,
-      confidence: enhancedConfidence,
+      confidence: Math.round(enhancedConfidence), // Redondeado a entero
       details: `CNN OPTIMIZADO: ${result.details} | Mejora neuronal: +${Math.round(cnnBoost)}%`
     };
   }
@@ -154,10 +155,10 @@ export class NeuralAnalysisService {
     const baseAccuracy = result.confidence;
     
     return {
-      convolutionalAccuracy: Math.min(95, baseAccuracy + Math.random() * 2),
-      featureExtractionScore: Math.min(93, baseAccuracy + Math.random() * 1.5),
-      patternRecognitionScore: Math.min(94, baseAccuracy + Math.random() * 2),
-      ensembleAgreement: ensembleResults.reduce((sum, r) => sum + r.agreement, 0) / ensembleResults.length
+      convolutionalAccuracy: Math.round(Math.min(95, baseAccuracy + Math.random() * 2)),
+      featureExtractionScore: Math.round(Math.min(93, baseAccuracy + Math.random() * 1.5)),
+      patternRecognitionScore: Math.round(Math.min(94, baseAccuracy + Math.random() * 2)),
+      ensembleAgreement: Math.round(ensembleResults.reduce((sum, r) => sum + r.agreement, 0) / ensembleResults.length)
     };
   }
 
@@ -170,17 +171,18 @@ export class NeuralAnalysisService {
     trainingStats: any
   ): EnhancedPPEResult {
     
-    const neuralScore = Math.min(97, result.confidence + 1);
-    const modelAgreement = deepLearningMetrics.ensembleAgreement;
+    const neuralScore = Math.round(Math.min(97, result.confidence + 1));
+    const modelAgreement = Math.round(deepLearningMetrics.ensembleAgreement);
     const uncertaintyLevel = Math.max(3, 100 - neuralScore - 3);
     
     // Obtener patternMatchScore de forma segura
     const patternMatchScore = result.patternMatchScore || 0.5;
-    const trainingBoost = patternMatchScore * 10;
-    const baseAccuracy = result.confidence - trainingBoost;
+    const trainingBoost = Math.round(patternMatchScore * 10);
+    const baseAccuracy = Math.max(70, Math.round(result.confidence - trainingBoost));
     
     return {
       ...result,
+      confidence: Math.round(result.confidence), // Asegurar que confidence sea entero
       neuralScore,
       modelAgreement,
       uncertaintyLevel,
@@ -189,10 +191,10 @@ export class NeuralAnalysisService {
         'ResNet_Fast_v1.9',
         'VisionTransformer_Lite_v1.6'
       ],
-      crossValidationScore,
+      crossValidationScore: Math.round(crossValidationScore),
       deepLearningMetrics,
       trainingEnhancement: {
-        baseAccuracy: Math.max(70, baseAccuracy),
+        baseAccuracy,
         trainingBoost,
         modelVersion: trainingStats.currentModel?.version || 'v1.0.0',
         trainedImages: trainingStats.totalImages,
