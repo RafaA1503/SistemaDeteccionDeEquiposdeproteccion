@@ -15,3 +15,13 @@ npm i
 npm run dev
 ```
 
+# Preloader
+```sh
+<img width="1279" height="839" alt="image" src="https://github.com/user-attachments/assets/38c6a890-c2a3-49d6-8c12-01743e4c124c" />
+```
+# Sistema
+<img width="1260" height="846" alt="image" src="https://github.com/user-attachments/assets/8a6eef99-bc5b-4e83-ab7d-fa7692b3b39d" />
+
+# Colaboradores 
+# David y Carla 
+# Proyecto UCV
