@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -320,7 +319,7 @@ const PPEDetectionCamera: React.FC = () => {
                         <span>
                           Detecciones: {detectionCount} | 
                           Modelo: {trainingStats.currentModel.version} | 
-                          Precisión: {trainingStats.currentModel.accuracy}% |
+                          Precisión: {Math.round(trainingStats.currentModel.accuracy)}% |
                           Próximo análisis en 4s
                         </span>
                       </span>
@@ -413,7 +412,7 @@ const PPEDetectionCamera: React.FC = () => {
                 <div className="flex items-center justify-center mb-2">
                   <Target className="h-5 w-5 text-purple-600" />
                 </div>
-                <p className="text-2xl font-bold text-purple-700">{trainingStats.currentModel.accuracy}%</p>
+                <p className="text-2xl font-bold text-purple-700">{Math.round(trainingStats.currentModel.accuracy)}%</p>
                 <p className="text-sm text-gray-600">Precisión Actual</p>
               </div>
               <div className="text-center p-3 bg-white rounded-lg border border-blue-100">
@@ -527,7 +526,7 @@ const PPEDetectionCamera: React.FC = () => {
                 <span>
                   <strong>Sistema Neuronal Activo:</strong> 
                   Análisis avanzado cada 4 segundos con modelo entrenado v{trainingStats.currentModel.version}
-                  ({trainingStats.currentModel.accuracy}% precisión)
+                  ({Math.round(trainingStats.currentModel.accuracy)}% precisión)
                 </span>
               </p>
             </div>
