@@ -22,4 +22,5 @@ npm install
 # Paso 4: Inicia el servidor de desarrollo
 npm run dev
 
+```
 <img width="1260" height="846" alt="image" src="https://github.com/user-attachments/assets/19fe8a88-b15c-4b04-8278-6300f261f806" />
