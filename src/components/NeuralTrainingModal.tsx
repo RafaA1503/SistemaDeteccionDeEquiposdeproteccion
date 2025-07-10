@@ -1,10 +1,10 @@
-
 import React, { useState, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { Brain, Upload, X, CheckCircle, AlertCircle, Zap, Network, Cpu, Target, Folder, FolderPlus, Images } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Brain, Upload, X, CheckCircle, AlertCircle, Zap, Network, Cpu, Target, Folder, FolderPlus, Images, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { TrainingImageStorageService, TrainingImageData, TrainingImageFolder } from '../services/trainingImageStorageService';
 
@@ -301,7 +301,6 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Estadísticas de entrenamiento existente */}
           {trainingStats.totalImages > 0 && (
             <Card className="border-cyan-200 bg-gradient-to-r from-cyan-50 to-blue-50">
               <CardHeader className="pb-3">
@@ -333,19 +332,18 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
             </Card>
           )}
 
-          {/* Gestión de carpetas */}
           <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Folder className="h-5 w-5 text-purple-600" />
-                  <span>Carpetas de Entrenamiento</span>
+                  <span>Seleccionar Carpeta de Destino</span>
                 </div>
                 <Button
                   onClick={() => setShowCreateFolder(true)}
                   variant="outline"
                   size="sm"
-                  className="border-purple-200 hover:bg-purple-50"
+                  className="border-purple-200 hover:bg-purple-50 text-purple-700"
                 >
                   <FolderPlus className="h-4 w-4 mr-2" />
                   Nueva Carpeta
@@ -354,53 +352,82 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
             </CardHeader>
             <CardContent>
               {showCreateFolder && (
-                <div className="mb-4 p-3 bg-white rounded-lg border border-purple-200">
-                  <div className="flex space-x-2">
+                <div className="mb-6 p-4 bg-white rounded-xl border-2 border-purple-200 shadow-sm">
+                  <div className="flex space-x-3">
                     <input
                       type="text"
                       placeholder="Nombre de la carpeta..."
                       value={newFolderName}
                       onChange={(e) => setNewFolderName(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="flex-1 px-4 py-2 border-2 border-purple-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                       onKeyPress={(e) => e.key === 'Enter' && createNewFolder()}
                     />
-                    <Button onClick={createNewFolder} size="sm" className="bg-purple-600 hover:bg-purple-700">
+                    <Button onClick={createNewFolder} size="sm" className="bg-purple-600 hover:bg-purple-700 text-white px-6">
                       Crear
                     </Button>
-                    <Button onClick={() => setShowCreateFolder(false)} variant="ghost" size="sm">
+                    <Button onClick={() => setShowCreateFolder(false)} variant="ghost" size="sm" className="hover:bg-purple-100">
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               )}
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {folders.map((folder) => (
-                  <div
-                    key={folder.id}
-                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                      selectedFolderId === folder.id
-                        ? 'border-purple-500 bg-purple-100'
-                        : 'border-gray-200 bg-white hover:border-purple-300'
-                    }`}
-                    onClick={() => setSelectedFolderId(folder.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-gray-800">{folder.name}</h4>
-                        <p className="text-sm text-gray-600">{folder.totalImages} imágenes</p>
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-purple-800">
+                  Carpeta donde se guardarán las imágenes:
+                </label>
+                <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
+                  <SelectTrigger className="w-full h-14 px-4 bg-white border-2 border-purple-200 hover:border-purple-300 focus:border-purple-500 rounded-xl transition-all shadow-sm">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-purple-100 rounded-lg">
+                        <Folder className="h-4 w-4 text-purple-600" />
                       </div>
-                      <Badge variant="outline" className="bg-purple-50">
-                        Calidad: {folder.avgQuality.toFixed(1)}/3
-                      </Badge>
+                      <SelectValue placeholder="Selecciona una carpeta...">
+                        {selectedFolderId && (
+                          <div className="flex items-center justify-between w-full">
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                {folders.find(f => f.id === selectedFolderId)?.name}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {folders.find(f => f.id === selectedFolderId)?.totalImages} imágenes
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </SelectValue>
                     </div>
-                  </div>
-                ))}
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-2 border-purple-200 rounded-xl shadow-lg">
+                    {folders.map((folder) => (
+                      <SelectItem 
+                        key={folder.id} 
+                        value={folder.id}
+                        className="px-4 py-3 hover:bg-purple-50 cursor-pointer rounded-lg mx-1"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-purple-100 rounded-lg">
+                            <Folder className="h-4 w-4 text-purple-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-800">{folder.name}</p>
+                            <div className="flex items-center space-x-2 text-sm text-gray-500">
+                              <span>{folder.totalImages} imágenes</span>
+                              <span>•</span>
+                              <Badge variant="outline" className="bg-purple-50 border-purple-200 text-purple-700">
+                                Calidad: {folder.avgQuality.toFixed(1)}/3
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
 
-          {/* Estado del entrenamiento */}
           {isTraining && (
             <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50">
               <CardContent className="p-4">
@@ -423,7 +450,6 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
             </Card>
           )}
 
-          {/* Zona de subida de archivos MEJORADA */}
           <Card className="border-dashed border-2 border-gray-300 hover:border-blue-400 transition-colors">
             <CardContent className="p-8">
               <div
@@ -444,7 +470,6 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
                   Formatos soportados: JPG, PNG, WEBP, GIF
                 </p>
                 
-                {/* Input mejorado con mejor manejo */}
                 <input
                   type="file"
                   multiple
@@ -452,7 +477,7 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
                   onChange={handleFileInputChange}
                   className="hidden"
                   id="training-upload-input"
-                  key={trainingImages.length} // Forzar re-render para limpiar el input
+                  key={trainingImages.length}
                 />
                 <label htmlFor="training-upload-input">
                   <Button 
@@ -467,7 +492,6 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
                   </Button>
                 </label>
 
-                {/* Indicador de estado de arrastre */}
                 {dragActive && (
                   <div className="mt-4 p-2 bg-blue-100 border border-blue-300 rounded-lg">
                     <p className="text-blue-700 font-medium">¡Suelta aquí tus imágenes!</p>
@@ -477,7 +501,6 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
             </CardContent>
           </Card>
 
-          {/* Lista de imágenes de entrenamiento */}
           {trainingImages.length > 0 && (
             <Card>
               <CardHeader>
@@ -515,7 +538,6 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
                             </Button>
                           </div>
                           
-                          {/* Etiquetas EPP */}
                           <div className="grid grid-cols-2 gap-1">
                             {eppOptions.map((option) => (
                               <label
@@ -538,7 +560,6 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
                             ))}
                           </div>
                           
-                          {/* Estado de procesamiento */}
                           <div className="flex items-center space-x-1">
                             {image.status === 'processed' ? (
                               <>
@@ -566,7 +587,6 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
             </Card>
           )}
 
-          {/* Controles de entrenamiento */}
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4 text-sm text-gray-600">
               <div className="flex items-center space-x-1">
