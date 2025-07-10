@@ -1,27 +1,23 @@
-# Proyecto Para la detección de Equipos de Proteccion 👷🧤⛑️🕶
-# Developer Rafael Aguirre
-# Install 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <https://github.com/RafaA1503/SistemaDeteccionDeEquiposdeproteccion.git>
+# 🛡️ Sistema de Detección de Equipos de Protección Personal (EPP)  
+**👷 Desarrollado por Rafael Aguirre**
 
-# Step 2: Navigate to the project directory.
-cd <nombre de la carpeta del proyecto>
+Este proyecto tiene como objetivo detectar automáticamente el uso de Equipos de Protección Personal (EPP) mediante técnicas de visión computacional. Se trata de una aplicación web pensada para mejorar la seguridad laboral utilizando tecnologías modernas.
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+## 🚀 Instalación del Proyecto
+
+Sigue los siguientes pasos para clonar e iniciar el sistema en tu entorno local:
+
+```bash
+# Paso 1: Clona el repositorio
+git clone https://github.com/RafaA1503/SistemaDeteccionDeEquiposdeproteccion.git
+
+# Paso 2: Ingresa al directorio del proyecto
+cd SistemaDeteccionDeEquiposdeproteccion
+
+# Paso 3: Instala las dependencias necesarias
+npm install
+
+# Paso 4: Inicia el servidor de desarrollo
 npm run dev
-```
-
-# Preloader
-```sh
-<img width="1279" height="839" alt="image" src="https://github.com/user-attachments/assets/38c6a890-c2a3-49d6-8c12-01743e4c124c" />
-```
-# Sistema
-<img width="1260" height="846" alt="image" src="https://github.com/user-attachments/assets/8a6eef99-bc5b-4e83-ab7d-fa7692b3b39d" />
-
-# Colaboradores 
-# David y Carla 
-# Proyecto UCV
