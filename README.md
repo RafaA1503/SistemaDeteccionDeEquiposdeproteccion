@@ -1,4 +1,5 @@
-# Proyecto Para la detección de Equipos de Proteccion :)
+# Proyecto Para la detección de Equipos de Proteccion 👷🧤⛑️🕶
+# Developer Rafael Aguirre
 # Install 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
