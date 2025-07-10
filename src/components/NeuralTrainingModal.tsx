@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -75,20 +76,50 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
     e.stopPropagation();
     setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(Array.from(e.dataTransfer.files));
+    console.log('📁 Drop detectado, procesando archivos...');
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
+      console.log('📁 Archivos detectados:', files.length);
+      handleFiles(files);
+    } else {
+      console.log('❌ No se detectaron archivos en el drop');
     }
   }, []);
 
-  const handleFiles = (files: File[]) => {
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('📁 Input file change detectado');
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      console.log('📁 Archivos seleccionados:', files.length);
+      handleFiles(files);
+    } else {
+      console.log('❌ No se detectaron archivos en el input');
+    }
+  }, []);
+
+  const handleFiles = useCallback((files: File[]) => {
+    console.log('🔍 Procesando archivos:', files.length);
+    const imageFiles = files.filter(file => {
+      const isImage = file.type.startsWith('image/');
+      console.log(`📸 Archivo ${file.name}: ${isImage ? 'ES' : 'NO ES'} imagen (${file.type})`);
+      return isImage;
+    });
     
-    imageFiles.forEach(file => {
-      const id = Date.now() + Math.random();
+    console.log('✅ Imágenes válidas encontradas:', imageFiles.length);
+
+    if (imageFiles.length === 0) {
+      toast.error('⚠️ Por favor, selecciona archivos de imagen válidos');
+      return;
+    }
+    
+    imageFiles.forEach((file, index) => {
+      const id = `${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`;
       const preview = URL.createObjectURL(file);
       
+      console.log(`📸 Procesando imagen ${index + 1}: ${file.name}`);
+      
       const newImage: TrainingImage = {
-        id: id.toString(),
+        id,
         file,
         preview,
         labels: {
@@ -101,11 +132,15 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
         status: 'pending'
       };
 
-      setTrainingImages(prev => [...prev, newImage]);
+      setTrainingImages(prev => {
+        const updated = [...prev, newImage];
+        console.log('📸 Total imágenes ahora:', updated.length);
+        return updated;
+      });
     });
 
-    toast.success(`📸 ${imageFiles.length} imágenes añadidas para entrenamiento`);
-  };
+    toast.success(`📸 ${imageFiles.length} imagen${imageFiles.length > 1 ? 'es' : ''} añadida${imageFiles.length > 1 ? 's' : ''} para entrenamiento`);
+  }, []);
 
   const updateImageLabels = (imageId: string, labels: Partial<TrainingImage['labels']>) => {
     setTrainingImages(prev => 
@@ -146,6 +181,8 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
   };
 
   const startNeuralTraining = async () => {
+    console.log('🚀 Iniciando entrenamiento neuronal...');
+    
     if (trainingImages.length === 0) {
       toast.error('⚠️ Añade al menos una imagen para entrenar');
       return;
@@ -180,6 +217,7 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
         
         // Guardar imágenes en carpeta cuando esté en el paso de organización
         if (i === 0) {
+          console.log('💾 Guardando imágenes en el servicio de almacenamiento...');
           for (const image of trainingImages) {
             try {
               await TrainingImageStorageService.saveTrainingImage(
@@ -188,8 +226,9 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
                 selectedFolderId,
                 `training_${Date.now()}`
               );
+              console.log(`✅ Imagen guardada: ${image.file.name}`);
             } catch (error) {
-              console.error('Error guardando imagen:', error);
+              console.error('❌ Error guardando imagen:', error);
             }
           }
         }
@@ -384,11 +423,13 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
             </Card>
           )}
 
-          {/* Zona de subida de archivos */}
+          {/* Zona de subida de archivos MEJORADA */}
           <Card className="border-dashed border-2 border-gray-300 hover:border-blue-400 transition-colors">
             <CardContent className="p-8">
               <div
-                className={`text-center ${dragActive ? 'bg-blue-50 border-blue-300' : ''}`}
+                className={`text-center transition-all duration-200 ${
+                  dragActive ? 'bg-blue-50 border-blue-300 scale-105' : ''
+                }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
@@ -399,20 +440,39 @@ const NeuralTrainingModal: React.FC<NeuralTrainingModalProps> = ({
                 <p className="text-gray-600 mb-4">
                   Arrastra y suelta imágenes de EPP o haz clic para seleccionar
                 </p>
+                <p className="text-sm text-gray-500 mb-4">
+                  Formatos soportados: JPG, PNG, WEBP, GIF
+                </p>
+                
+                {/* Input mejorado con mejor manejo */}
                 <input
                   type="file"
                   multiple
                   accept="image/*"
-                  onChange={(e) => handleFiles(Array.from(e.target.files || []))}
+                  onChange={handleFileInputChange}
                   className="hidden"
-                  id="training-upload"
+                  id="training-upload-input"
+                  key={trainingImages.length} // Forzar re-render para limpiar el input
                 />
-                <label htmlFor="training-upload">
-                  <Button variant="outline" className="cursor-pointer">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Seleccionar Imágenes
+                <label htmlFor="training-upload-input">
+                  <Button 
+                    variant="outline" 
+                    className="cursor-pointer hover:bg-blue-50"
+                    asChild
+                  >
+                    <span>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Seleccionar Imágenes
+                    </span>
                   </Button>
                 </label>
+
+                {/* Indicador de estado de arrastre */}
+                {dragActive && (
+                  <div className="mt-4 p-2 bg-blue-100 border border-blue-300 rounded-lg">
+                    <p className="text-blue-700 font-medium">¡Suelta aquí tus imágenes!</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
